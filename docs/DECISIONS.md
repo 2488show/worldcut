@@ -659,3 +659,9 @@ Node 里：倾斜近景约 9 ms / 帧（道具占 5 ms），正俯视约 5.5 ms�
   - 数据署名按点号自动断行，竖版用小一号字，不再被左右裁掉。
   - 横版成片没有重渲，不受影响。
 - 成片：promo/deliver/worldcut-next_9x16_{zh,en}.mp4，24 秒、1440 帧，配乐沿用原来的 mix.wav。
+
+## D166 · 源码公开到 GitHub（2026-11-23）
+- 仓库：https://github.com/2488show/worldcut ，公开，按用户选择不放许可证，README 写明 All rights reserved：源码公开供阅读，未授权复制、修改或再发布。
+- 仓库在 GitHub 网页上新建，因为会话里的 gh 令牌失效了。分支 main，首次提交共 177 个文件。
+- 不进仓库的：构建产物 dist/、dist-wx/、out/，以及 node_modules。城市数据、宣传片工程和上架材料在仓库外的别的目录里，本来就不在。
+- README 重写成中英双语，包括试玩地址、制作方式（说明了用 AI 制作）、运行命令、目录结构、版权和第三方署名（Fusion Pixel 字体用 OFL 许可；宣传片里的城市数据）。
