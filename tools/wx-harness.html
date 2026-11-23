@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- A stand-in for WeChat (round 25): just enough of the wx API to run the mini game bundle in a
+     browser for tests and screenshots. Open as dist-wx/harness.html (copied there by the test). -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><script>
+(function () {
+  const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1
+  let first = true
+  const handlers = { start: [], move: [], end: [], cancel: [] }
+  const touch = (e) => ({ identifier: e.pointerId, clientX: e.clientX, clientY: e.clientY })
+  window.wx = {
+    getSystemInfoSync: () => ({ windowWidth: W, windowHeight: H, pixelRatio: dpr, safeArea: { top: 44, bottom: H - 20 }, language: 'zh_CN', platform: 'devtools' }),
+    createCanvas: () => {
+      const c = document.createElement('canvas')
+      if (first) { first = false; c.style.width = W + 'px'; c.style.height = H + 'px'; document.body.appendChild(c)
+        c.addEventListener('pointerdown', (e) => handlers.start.forEach((f) => f({ touches: [touch(e)], changedTouches: [touch(e)] })))
+        c.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType !== 'mouse') handlers.move.forEach((f) => f({ touches: [touch(e)], changedTouches: [touch(e)] })) })
+        c.addEventListener('pointerup', (e) => handlers.end.forEach((f) => f({ touches: [], changedTouches: [touch(e)] })))
+      }
+      return c
+    },
+    loadFont: (p) => { const f = new FontFace('skypixel', `url(${p})`); f.load().then((x) => document.fonts.add(x)); return 'skypixel' },
+    getStorageSync: (k) => { const v = localStorage.getItem(k); return v === null ? '' : v },
+    setStorageSync: (k, v) => localStorage.setItem(k, v),
+    removeStorageSync: (k) => localStorage.removeItem(k),
+    onTouchStart: (f) => handlers.start.push(f), onTouchMove: (f) => handlers.move.push(f),
+    onTouchEnd: (f) => handlers.end.push(f), onTouchCancel: (f) => handlers.cancel.push(f),
+    onHide: () => {}, onShow: () => {},
+  }
+  // ?wxaudio: no browser AudioContext; WeChat's, as unlike the browser's as it may be (connect hands
+  // back nothing, no setTargetAtTime / no convolver / no compressor)
+  if (location.search.includes('wxaudio')) {
+    const Real = window.AudioContext
+    delete window.AudioContext; window.AudioContext = undefined; window.webkitAudioContext = undefined
+    window.wx.createWebAudioContext = () => {
+      const ctx = new Real()
+      const cripple = (n) => {
+        const c = n.connect.bind(n); n.connect = (d, ...r) => { c(d, ...r) }
+        for (const k of ['frequency', 'gain', 'Q', 'delayTime']) if (n[k]) n[k].setTargetAtTime = undefined
+        return n
+      }
+      for (const k of ['createGain', 'createOscillator', 'createBufferSource', 'createBiquadFilter', 'createDelay', 'createAnalyser']) { const m = ctx[k].bind(ctx); ctx[k] = (...a) => cripple(m(...a)) }
+      ctx.createConvolver = undefined
+      ctx.createDynamicsCompressor = undefined
+      return ctx
+    }
+  }
+})()
+</script><script src="js/worldcut.js"></script></body></html>

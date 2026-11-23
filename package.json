@@ -1,0 +1,28 @@
+{
+  "name": "skyisle",
+  "version": "1.0.0",
+  "description": "云岭航行 Worldcut：像素风多人岛屿经营 + 实体送货",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "play": "tsx tools/play-test.ts",
+    "i18n": "tsx tools/i18n.ts"
+  },
+  "dependencies": {
+    "preact": "^11.2.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^5.1.0"
+  },
+  "private": true,
+  "type": "module"
+}

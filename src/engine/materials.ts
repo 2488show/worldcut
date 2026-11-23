@@ -1,0 +1,190 @@
+// Ground materials. Every ground pixel has a height and one material; a material has a colour
+// for its top and one for its walls. 0–16 are the prototype's terrain materials, unchanged.
+// The rest are new: runways, piers, buildings and resource nodes are all "stamped" into the
+// same height map, so they are drawn by the same renderer and match the terrain's look.
+
+type RGB = [number, number, number]
+
+const DEFS: [name: string, top: RGB, side: RGB][] = [
+  // ── prototype terrain (do not reorder: the terrain generator uses these indices)
+  ['deep', [36, 104, 180], [36, 104, 180]],
+  ['mid', [44, 124, 198], [44, 124, 198]],
+  ['shallow', [66, 160, 216], [66, 160, 216]],
+  ['surf', [104, 204, 214], [104, 204, 214]],
+  ['sand', [238, 220, 164], [204, 180, 122]],
+  ['sandSpeck', [222, 200, 140], [204, 180, 122]],
+  ['grass', [96, 178, 52], [56, 120, 44]],
+  ['grassDark', [70, 148, 44], [50, 108, 42]],
+  ['grassLight', [134, 206, 76], [60, 128, 46]],
+  ['treeTop', [70, 158, 64], [24, 78, 42]],
+  ['tree', [42, 122, 54], [22, 72, 40]],
+  ['treeEdge', [28, 92, 46], [20, 64, 38]],
+  ['rock', [146, 140, 134], [96, 90, 92]],
+  ['rockDark', [118, 112, 110], [86, 82, 86]],
+  ['rockLight', [178, 172, 162], [104, 98, 98]],
+  ['snow', [246, 250, 255], [186, 202, 228]],
+  ['snowShade', [214, 226, 244], [176, 192, 220]],
+  // ── ground works
+  ['asphalt', [98, 102, 114], [70, 72, 84]],
+  ['paint', [232, 232, 220], [70, 72, 84]],
+  ['plaza', [214, 194, 148], [170, 150, 108]],
+  ['plazaSpeck', [198, 178, 132], [170, 150, 108]],
+  ['plank', [190, 144, 92], [128, 90, 56]],
+  ['plankDark', [160, 116, 70], [110, 76, 48]],
+  ['path', [222, 204, 160], [176, 158, 116]],
+  ['beacon', [255, 220, 90], [200, 150, 40]],
+  // ── buildings
+  ['stone', [170, 166, 162], [122, 118, 120]],
+  ['stoneDark', [134, 130, 130], [100, 96, 100]],
+  ['ember', [255, 150, 50], [122, 118, 120]],
+  ['soot', [62, 58, 62], [44, 42, 48]],
+  ['roofRed', [210, 88, 64], [160, 60, 50]],
+  ['roofRedFront', [210, 88, 64], [238, 222, 190]],
+  ['roofBlue', [74, 132, 194], [50, 94, 152]],
+  ['roofBlueFront', [74, 132, 194], [238, 222, 190]],
+  ['roofGreen', [92, 160, 120], [58, 116, 90]],
+  ['roofGreenFront', [92, 160, 120], [238, 222, 190]],
+  ['door', [150, 100, 64], [96, 62, 44]],
+  ['canvas', [236, 228, 204], [192, 182, 158]],
+  ['canvasStripe', [232, 96, 60], [182, 72, 50]],
+  ['canvasFront', [236, 228, 204], [58, 54, 66]],
+  ['boardWood', [150, 106, 66], [120, 84, 54]],
+  ['paperWhite', [150, 106, 66], [246, 242, 228]],
+  ['paperYellow', [150, 106, 66], [250, 214, 110]],
+  ['paperPink', [150, 106, 66], [244, 150, 150]],
+  ['crate', [218, 174, 108], [164, 120, 70]],
+  ['crateBand', [156, 110, 64], [124, 88, 52]],
+  // ── resource nodes
+  ['fruitTreeTop', [156, 218, 88], [40, 110, 50]],
+  ['fruitTree', [108, 190, 72], [36, 100, 48]],
+  ['fruitTreeEdge', [68, 150, 64], [30, 88, 44]],
+  ['fruit', [244, 88, 66], [36, 100, 48]],
+  ['stump', [216, 182, 130], [120, 84, 54]],
+  ['oreRock', [168, 162, 156], [104, 98, 100]],
+  ['oreCopper', [240, 144, 72], [150, 92, 62]],
+  ['oreIron', [112, 134, 178], [80, 92, 124]],
+  ['rubble', [132, 126, 124], [96, 90, 94]],
+  ['bush', [124, 200, 94], [60, 128, 56]],
+  ['bushFlower', [255, 238, 156], [60, 128, 56]],
+  ['bushPicked', [94, 162, 78], [56, 116, 52]],
+  // ── under ground: the mine
+  ['caveFloor', [82, 74, 80], [60, 54, 62]],
+  ['caveFloorSpeck', [100, 90, 94], [60, 54, 62]],
+  ['caveRubble', [124, 114, 112], [60, 54, 62]],
+  ['caveRock', [134, 126, 134], [84, 78, 92]],
+  ['caveRockLight', [158, 150, 154], [92, 86, 98]],
+  ['caveCrack', [44, 40, 50], [44, 40, 50]],
+  ['caveHard', [86, 100, 140], [54, 64, 100]],
+  ['caveHardLight', [118, 134, 176], [60, 72, 110]],
+  ['caveDark', [50, 46, 58], [34, 32, 42]],
+  ['veinCoal', [30, 28, 38], [24, 22, 30]],
+  ['veinCoalShine', [96, 96, 118], [24, 22, 30]],
+  ['veinCopper', [240, 140, 70], [190, 100, 56]],
+  ['veinCopperGreen', [64, 178, 150], [48, 134, 116]],
+  ['veinIron', [204, 104, 76], [150, 76, 60]],
+  ['veinIronLight', [236, 156, 120], [150, 76, 60]],
+  ['veinGold', [252, 208, 64], [204, 160, 40]],
+  ['veinGoldLight', [255, 242, 170], [204, 160, 40]],
+  ['veinCrystal', [120, 220, 252], [90, 170, 220]],
+  ['veinCrystalLight', [214, 170, 255], [150, 120, 220]],
+  ['veinMoon', [190, 200, 255], [140, 150, 220]],
+  ['veinMoonLight', [240, 244, 255], [170, 180, 236]],
+  // ── under water: the sea bed
+  ['seaSand', [202, 204, 172], [150, 160, 140]],
+  ['seaSandDark', [176, 182, 158], [150, 160, 140]],
+  ['seaRock', [104, 118, 130], [72, 86, 100]],
+  ['seaRockLight', [134, 148, 156], [78, 92, 106]],
+  ['seaDeep', [70, 96, 124], [50, 72, 100]],
+  ['coralPink', [244, 124, 136], [194, 84, 104]],
+  ['coralOrange', [252, 164, 92], [204, 114, 62]],
+  ['coralWhite', [250, 240, 230], [200, 190, 190]],
+  ['kelp', [62, 142, 92], [42, 102, 72]],
+  ['kelpLight', [104, 184, 114], [48, 112, 78]],
+  // ── inside a house: floors, and walls (their top is the cap of the wall, their side the wallpaper)
+  ['floorWood', [196, 146, 96], [150, 108, 70]],
+  ['floorWoodDark', [176, 128, 82], [150, 108, 70]],
+  ['floorWoodLight', [214, 170, 118], [160, 118, 78]],
+  ['floorTile', [236, 238, 236], [190, 194, 196]],
+  ['floorTileBlue', [176, 214, 230], [140, 176, 196]],
+  ['floorKitchen', [230, 204, 160], [190, 160, 120]],
+  ['floorKitchenDark', [196, 120, 92], [160, 96, 76]],
+  ['wallCap', [236, 226, 206], [226, 212, 186]],
+  ['wallPaper', [244, 228, 196], [232, 210, 170]],
+  ['wallPaperBlue', [210, 228, 236], [176, 206, 222]],
+  ['wallPaperGreen', [214, 230, 196], [180, 206, 162]],
+  ['wallPaperRose', [244, 214, 206], [226, 184, 174]],
+  ['wallTrim', [150, 108, 70], [126, 88, 58]],
+  ['doorway', [176, 128, 82], [150, 108, 70]],
+  ['outsideDark', [40, 44, 56], [30, 32, 42]],
+  // the house's outside: plaster (its top is the wall's cap, under the roof)
+  ['wallOutside', [236, 226, 206], [240, 226, 196]],
+  // ── cities (concept, round 24: the archipelago after level 10). Streets, and eight looks of building:
+  //    a roof, a plain wall, a wall with windows, and a wall whose windows are lit after dark
+  ['cityRoad', [86, 90, 102], [62, 64, 76]],
+  ['cityRoadLine', [226, 226, 214], [62, 64, 76]],
+  ['cityPave', [198, 192, 180], [150, 144, 136]],
+  ['cityQuay', [176, 170, 160], [120, 114, 110]],
+  ['cityRail', [120, 112, 108], [84, 78, 78]],
+  ['cityTileRed', [186, 100, 76], [150, 78, 62]],
+  ['cityTileGrey', [124, 128, 138], [92, 96, 108]],
+  ['cityTree', [84, 160, 70], [40, 104, 52]],
+  ['cityTreeDark', [62, 136, 62], [34, 90, 48]],
+  ['cityStoneRoof', [172, 172, 176], [214, 210, 200]],
+  ['cityStoneWall', [237, 232, 222], [214, 210, 200]],
+  ['cityStoneWin', [237, 232, 222], [214, 210, 200]],
+  ['cityStoneWinLit', [237, 232, 222], [214, 210, 200]],
+  ['cityGlassRoof', [150, 160, 172], [126, 166, 200]],
+  ['cityGlassWall', [142, 185, 222], [126, 166, 200]],
+  ['cityGlassWin', [142, 185, 222], [126, 166, 200]],
+  ['cityGlassWinLit', [142, 185, 222], [126, 166, 200]],
+  ['cityDarkRoof', [104, 108, 120], [88, 98, 120]],
+  ['cityDarkWall', [101, 111, 135], [88, 98, 120]],
+  ['cityDarkWin', [101, 111, 135], [88, 98, 120]],
+  ['cityDarkWinLit', [101, 111, 135], [88, 98, 120]],
+  ['cityBrickRoof', [124, 88, 74], [178, 98, 74]],
+  ['cityBrickWall', [198, 111, 85], [178, 98, 74]],
+  ['cityBrickWin', [198, 111, 85], [178, 98, 74]],
+  ['cityBrickWinLit', [198, 111, 85], [178, 98, 74]],
+  ['cityPlasterRoof', [182, 98, 74], [228, 210, 172]],
+  ['cityPlasterWall', [252, 232, 191], [228, 210, 172]],
+  ['cityPlasterWin', [252, 232, 191], [228, 210, 172]],
+  ['cityPlasterWinLit', [252, 232, 191], [228, 210, 172]],
+  ['cityWhiteRoof', [196, 196, 192], [240, 238, 230]],
+  ['cityWhiteWall', [255, 255, 254], [240, 238, 230]],
+  ['cityWhiteWin', [255, 255, 254], [240, 238, 230]],
+  ['cityWhiteWinLit', [255, 255, 254], [240, 238, 230]],
+  ['cityBrownRoof', [100, 94, 94], [142, 106, 86]],
+  ['cityBrownWall', [159, 120, 98], [142, 106, 86]],
+  ['cityBrownWin', [159, 120, 98], [142, 106, 86]],
+  ['cityBrownWinLit', [159, 120, 98], [142, 106, 86]],
+  ['cityYoursRoof', [70, 134, 230], [248, 248, 252]],
+  ['cityYoursWall', [255, 255, 255], [248, 248, 252]],
+  ['cityYoursWin', [255, 255, 255], [248, 248, 252]],
+  ['cityYoursWinLit', [255, 255, 255], [248, 248, 252]],
+]
+
+export const MAT_TOP: RGB[] = DEFS.map((d) => d[1])
+export const MAT_SIDE: RGB[] = DEFS.map((d) => d[2])
+export const NMAT = DEFS.length
+
+/** material name → index */
+export const MAT = Object.fromEntries(DEFS.map((d, i) => [d[0], i])) as Record<string, number>
+
+/** water is anything below this index (it is animated and has no walls) */
+export const FIRST_LAND = 4
+
+/** walls that show their floors: on two rows of height in every three the wall is this colour (its windows) */
+const BAND_DEFS: Record<string, RGB> = {
+  cityStoneWin: [92, 124, 158], cityStoneWinLit: [92, 124, 158],
+  cityGlassWin: [66, 106, 158], cityGlassWinLit: [66, 106, 158],
+  cityDarkWin: [50, 62, 92], cityDarkWinLit: [50, 62, 92],
+  cityBrickWin: [70, 60, 72], cityBrickWinLit: [70, 60, 72],
+  cityPlasterWin: [104, 112, 130], cityPlasterWinLit: [104, 112, 130],
+  cityWhiteWin: [108, 148, 180], cityWhiteWinLit: [108, 148, 180],
+  cityBrownWin: [64, 60, 74], cityBrownWinLit: [64, 60, 74],
+  cityYoursWin: [70, 134, 230], cityYoursWinLit: [70, 134, 230],
+}
+export const MAT_BAND: (RGB | null)[] = DEFS.map((d) => BAND_DEFS[d[0]] ?? null)
+/** windows that are lit once it is dark */
+const GLOW_DEFS: Record<string, RGB> = { cityStoneWinLit: [255, 226, 140], cityGlassWinLit: [255, 226, 140], cityDarkWinLit: [255, 226, 140], cityBrickWinLit: [255, 226, 140], cityPlasterWinLit: [255, 226, 140], cityWhiteWinLit: [255, 226, 140], cityBrownWinLit: [255, 226, 140], cityYoursWinLit: [255, 226, 140] }
+export const MAT_GLOW: (RGB | null)[] = DEFS.map((d) => GLOW_DEFS[d[0]] ?? null)
